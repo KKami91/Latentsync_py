@@ -1,7 +1,7 @@
-torch
+torch==2.3.1
 torchsde
-torchvision
-torchaudio
+torchvision==0.18.1
+torchaudio==2.3.1
 numpy>=1.25.0
 einops
 transformers>=4.28.1
@@ -14,6 +14,19 @@ Pillow
 scipy
 tqdm
 psutil
+av
+accelerate
+pytorch-lightning
+diffusers
+mediapipe>=0.10.8
+transformers
+huggingface-hub
+omegaconf
+opencv-python
+face-alignment
+decord
+ffmpeg-python
+imageio-ffmpeg
 
 #non essential dependencies:
 kornia>=0.7.1
