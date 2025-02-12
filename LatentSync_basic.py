@@ -216,7 +216,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     vhs_videocombine_41 = vhs_videocombine.combine_video(
                         frame_rate=25,
                         loop_count=0,
-                        filename_prefix=f"{output_filename}.mp4",
+                        filename_prefix=f"{output_filename}",
                         format="video/h264-mp4",
                         pix_fmt="yuv420p",
                         crf=19,
@@ -230,7 +230,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     )
 
                     output_file = f"{output_filename}.mp4"
-                    actual_output_path = os.path.join(output_dir, output_file)
+                    actual_output_path = os.path.join(output_dir, output_file, '.mp4')
 
                     if not os.path.exists(actual_output_path):
                         raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
