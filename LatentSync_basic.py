@@ -3,6 +3,11 @@ import random
 import sys
 from typing import Sequence, Mapping, Any, Union
 import torch
+import runpod
+import base64
+import torch
+from typing import Sequence, Mapping, Any, Union
+from io import BytesIO
 
 
 def get_value_at_index(obj: Union[Sequence, Mapping], index: int) -> Any:
@@ -59,8 +64,8 @@ def add_comfyui_directory_to_sys_path() -> None:
     """
     Add 'ComfyUI' to the sys.path
     """
-    comfyui_path = find_path("ComfyUI")
-    if comfyui_path is not None and os.path.isdir(comfyui_path):
+    comfyui_path = "/workspace/ComfyUI"
+    if os.path.isdir(comfyui_path):
         sys.path.append(comfyui_path)
         print(f"'{comfyui_path}' added to sys.path")
 
@@ -85,8 +90,8 @@ def add_extra_model_paths() -> None:
         print("Could not find the extra_model_paths config file.")
 
 
-add_comfyui_directory_to_sys_path()
-add_extra_model_paths()
+# add_comfyui_directory_to_sys_path()
+# add_extra_model_paths()
 
 
 def import_custom_nodes() -> None:
@@ -112,33 +117,54 @@ def import_custom_nodes() -> None:
     init_extra_nodes()
 
 
-from nodes import NODE_CLASS_MAPPINGS
 
 
-def main():
+def setup_environment():
+    """Setup the ComfyUI environment"""
+    add_comfyui_directory_to_sys_path()
+    add_extra_model_paths()
     import_custom_nodes()
-    with torch.inference_mode():
-        loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
-        loadaudio_37 = loadaudio.load(audio="demo2_audio.wav")
 
-        vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
-        vhs_loadvideo_40 = vhs_loadvideo.load_video(
-            video="student_1.mp4",
-            force_rate=25,
-            custom_width=512,
-            custom_height=512,
-            frame_load_cap=0,
-            skip_first_frames=0,
-            select_every_nth=1,
-            format="AnimateDiff",
-            unique_id=12015943199208297010,
-        )
 
-        d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
-        d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
-        vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
+    from nodes import NODE_CLASS_MAPPINGS
 
-        for q in range(1):
+    # 파일명에서 확장자 제거
+    video_name_without_ext = os.path.splitext(video_name)[0]    
+
+    # 임시 파일로 저장
+    video_path = "/tmp/input_video.mp4"
+    audio_path = "/tmp/input_audio.wav"
+
+    with open(video_path, "wb") as f:
+        f.write(video_data)
+    with open(audio_path, "wb") as f:
+        f.write(audio_data)
+
+    try:
+        with torch.inference_mode():
+            loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
+            loadaudio_37 = loadaudio.load(audio=audio_path)
+
+            vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
+            vhs_loadvideo_40 = vhs_loadvideo.load_video(
+                video=video_path,
+                force_rate=25,
+                custom_width=512,
+                custom_height=512,
+                frame_load_cap=0,
+                skip_first_frames=0,
+                select_every_nth=1,
+                format="AnimateDiff",
+                unique_id=12015943199208297010,
+            )
+
+            d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
+            d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
+            vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+
+            output_path = "/tmp/output.mp4"
+
             d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
                 mode="pingpong",
                 fps=25,
@@ -156,7 +182,7 @@ def main():
             vhs_videocombine_41 = vhs_videocombine.combine_video(
                 frame_rate=25,
                 loop_count=0,
-                filename_prefix="latentsync",
+                filename_prefix="convert_{video_name_without_ext}",
                 format="video/h264-mp4",
                 pix_fmt="yuv420p",
                 crf=19,
@@ -169,6 +195,53 @@ def main():
                 unique_id=7599875590960303900,
             )
 
+            # 결과 파일 읽기 및 base64 인코딩
+            with open(output_path, "rb") as f:
+                output_data = f.read()
+            
+            return base64.b64encode(output_data).decode('utf-8')
+    
+    finally:
+        # 임시 파일 정리
+        if os.path.exists(video_path):
+            os.remove(video_path)
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+@runpod.handler
+def handler(event):
+    """Runpod serverless handler"""
+    try:
+        # 입력 데이터 검증
+        if 'input' not in event or 'video' not in event['input'] or 'audio' not in event['input']:
+            raise ValueError("Missing required input fields (video and/or audio)")
+
+        # 입력 데이터 디코딩
+        video_data = base64.b64decode(event['input']['video'])
+        audio_data = base64.b64decode(event['input']['audio'])
+        video_name = event['input']['video_name']
+        
+        # 환경 설정
+        setup_environment()
+        
+        # 처리
+        output_base64 = process_latentsync(video_data, audio_data, video_name)
+        
+        return {
+            "output": {
+                "video_data": output_base64,
+                "video_name": f"convert_{os.path.splitext(video_name)[0]}.mp4"  # 결과 파일명도 함께 반환
+            }
+        }
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
+
 
 if __name__ == "__main__":
-    main()
+    runpod.serverless.start({
+        "handler": handler
+    })
