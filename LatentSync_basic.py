@@ -210,7 +210,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
         if os.path.exists(output_path):
             os.remove(output_path)
 
-@runpod.handler
+
 def handler(event):
     """Runpod serverless handler"""
     try:
@@ -242,6 +242,4 @@ def handler(event):
 
 
 if __name__ == "__main__":
-    runpod.serverless.start({
-        "handler": handler
-    })
+    runpod.serverless.start({"handler": handler})
