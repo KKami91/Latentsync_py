@@ -230,7 +230,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     )
 
                     output_file = f"{output_filename}.mp4"
-                    actual_output_path = os.path.join(output_dir, output_file+'.mp4',)
+                    actual_output_path = os.path.join(output_dir, output_file)
 
                     if not os.path.exists(actual_output_path):
                         raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
