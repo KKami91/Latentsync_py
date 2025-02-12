@@ -12,6 +12,7 @@ __pycache__/
 # custom_nodes 설정
 custom_nodes/ComfyUI-LatentSyncWrapper/checkpoints/*
 !custom_nodes/ComfyUI-LatentSyncWrapper/checkpoints/
+!custom_nodes/ComfyUI-LatentSyncWrapper/checkpoints/*.txt
 
 # custom_nodes 예제 파일 포함
 !custom_nodes/example_node.py.example
