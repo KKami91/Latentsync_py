@@ -132,7 +132,10 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
     from nodes import NODE_CLASS_MAPPINGS
 
     # 파일명에서 확장자 제거
-    video_name_without_ext = os.path.splitext(video_name)[0]    
+    video_name_without_ext = os.path.splitext(video_name)[0]
+    output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
 
     #로컬 전용 테스트
     # with tempfile.TemporaryDirectory() as temp_dir:
@@ -150,7 +153,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
         # 임시 파일 경로 생성
         video_path = os.path.join(temp_dir, "input_video.mp4")
         audio_path = os.path.join(temp_dir, "input_audio.wav")
-        output_path = os.path.join(temp_dir, f"convert_{video_name}")
+        output_path = os.path.join(output_dir, f"convert_{video_name}")
         
         # 입력 파일 저장
         with open(video_path, "wb") as f:
@@ -167,8 +170,8 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                 vhs_loadvideo_40 = vhs_loadvideo.load_video(
                     video=video_path,
                     force_rate=25,
-                    custom_width=0,
-                    custom_height=0,
+                    custom_width=512,
+                    custom_height=512,
                     frame_load_cap=0,
                     skip_first_frames=0,
                     select_every_nth=1,
