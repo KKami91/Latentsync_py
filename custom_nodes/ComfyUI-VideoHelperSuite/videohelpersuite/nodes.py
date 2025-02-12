@@ -528,7 +528,8 @@ class VideoCombine:
                     pass
             if a_waveform is not None:
                 # Create audio file if input was provided
-                output_file_with_audio = f"{filename}_{counter:05}-audio.{video_format['extension']}"
+                #output_file_with_audio = f"{filename}_{counter:05}-audio.{video_format['extension']}"
+                output_file_with_audio = f"{filename}.{video_format['extension']}"
                 output_file_with_audio_path = os.path.join(full_output_folder, output_file_with_audio)
                 if "audio_pass" not in video_format:
                     logger.warn("Selected video format does not have explicit audio support")
