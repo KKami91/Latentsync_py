@@ -133,9 +133,12 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
 
     # 파일명에서 확장자 제거
     video_name_without_ext = os.path.splitext(video_name)[0]
-    output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    # output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir, exist_ok=True)
+
+    output_dir = os.path.join(os.getcwd(), "output")
+    os.makedirs(output_dir, exist_ok=True)
 
     #로컬 전용 테스트
     # with tempfile.TemporaryDirectory() as temp_dir:
@@ -153,88 +156,107 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
         # 임시 파일 경로 생성
         video_path = os.path.join(temp_dir, "input_video.mp4")
         audio_path = os.path.join(temp_dir, "input_audio.wav")
-        output_path = os.path.join(output_dir, f"convert_{video_name}")
+        #output_path = os.path.join(output_dir, f"convert_{video_name}")
         
-        # 입력 파일 저장
-        with open(video_path, "wb") as f:
-            f.write(video_data)
-        with open(audio_path, "wb") as f:
-            f.write(audio_data)
+        # # 입력 파일 저장
+        # with open(video_path, "wb") as f:
+        #     f.write(video_data)
+        # with open(audio_path, "wb") as f:
+        #     f.write(audio_data)
 
-        try:
-            with torch.inference_mode():
-                loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
-                loadaudio_37 = loadaudio.load(audio=audio_path)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            video_path = os.path.join(temp_dir, "input_video.mp4")
+            audio_path = os.path.join(temp_dir, "input_audio.wav")
+            
+            # 출력 파일명 설정
+            output_filename = f"convert_{os.path.splitext(video_name)[0]}"
+            output_path = os.path.join(output_dir, output_filename)
+            
+            with open(video_path, "wb") as f:
+                f.write(video_data)
+            with open(audio_path, "wb") as f:
+                f.write(audio_data)
 
-                vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
-                vhs_loadvideo_40 = vhs_loadvideo.load_video(
-                    video=video_path,
-                    force_rate=25,
-                    custom_width=512,
-                    custom_height=512,
-                    frame_load_cap=0,
-                    skip_first_frames=0,
-                    select_every_nth=1,
-                    format="AnimateDiff",
-                    unique_id=12015943199208297010,
-                )
+            try:
+                with torch.inference_mode():
+                    loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
+                    loadaudio_37 = loadaudio.load(audio=audio_path)
 
-                d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
-                d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
-                vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
-                
-                d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
-                    mode="pingpong",
-                    fps=25,
-                    silent_padding_sec=0.5,
-                    images=get_value_at_index(vhs_loadvideo_40, 0),
-                    audio=get_value_at_index(loadaudio_37, 0),
-                )
+                    vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
+                    vhs_loadvideo_40 = vhs_loadvideo.load_video(
+                        video=video_path,
+                        force_rate=25,
+                        custom_width=0,
+                        custom_height=0,
+                        frame_load_cap=0,
+                        skip_first_frames=0,
+                        select_every_nth=1,
+                        format="AnimateDiff",
+                        unique_id=12015943199208297010,
+                    )
 
-                d_latentsyncnode_43 = d_latentsyncnode.inference(
-                    seed=random.randint(1, 2**32 - 1),
-                    images=get_value_at_index(d_videolengthadjuster_53, 0),
-                    audio=get_value_at_index(d_videolengthadjuster_53, 1),
-                )
+                    d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
+                    d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
+                    vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+                    
+                    d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
+                        mode="pingpong",
+                        fps=25,
+                        silent_padding_sec=0.5,
+                        images=get_value_at_index(vhs_loadvideo_40, 0),
+                        audio=get_value_at_index(loadaudio_37, 0),
+                    )
 
-                vhs_videocombine_41 = vhs_videocombine.combine_video(
-                    frame_rate=25,
-                    loop_count=0,
-                    filename_prefix=os.path.splitext(output_path)[0],  # 확장자 제외
-                    format="video/h264-mp4",
-                    pix_fmt="yuv420p",
-                    crf=19,
-                    save_metadata=True,
-                    trim_to_audio=False,
-                    pingpong=False,
-                    save_output=True,
-                    images=get_value_at_index(d_latentsyncnode_43, 0),
-                    audio=get_value_at_index(d_latentsyncnode_43, 1),
-                    unique_id=7599875590960303900,
-                )
+                    d_latentsyncnode_43 = d_latentsyncnode.inference(
+                        seed=random.randint(1, 2**32 - 1),
+                        images=get_value_at_index(d_videolengthadjuster_53, 0),
+                        audio=get_value_at_index(d_videolengthadjuster_53, 1),
+                    )
 
-                # 결과 파일 읽기
-                with open(output_path, "rb") as f:
-                    output_data = f.read()
-                
-                return {
-                    "output": {
-                        "video_data": base64.b64encode(output_data).decode('utf-8'),
-                        "video_name": f"convert_{video_name}"
+                    vhs_videocombine_41 = vhs_videocombine.combine_video(
+                        frame_rate=25,
+                        loop_count=0,
+                        filename_prefix=output_filename,  # 확장자 제외
+                        format="video/h264-mp4",
+                        pix_fmt="yuv420p",
+                        crf=19,
+                        save_metadata=True,
+                        trim_to_audio=False,
+                        pingpong=False,
+                        save_output=True,
+                        images=get_value_at_index(d_latentsyncnode_43, 0),
+                        audio=get_value_at_index(d_latentsyncnode_43, 1),
+                        unique_id=7599875590960303900,
+                    )
+
+                    output_file = f"{output_filename}.mp4"
+                    actual_output_path = os.path.join(output_dir, output_file)
+
+                    if not os.path.exists(actual_output_path):
+                        raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
+
+                    # 결과 파일 읽기
+                    with open(output_path, "rb") as f:
+                        output_data = f.read()
+                    
+                    return {
+                        "output": {
+                            "video_data": base64.b64encode(output_data).decode('utf-8'),
+                            "video_name": "output_file"
+                        }
                     }
-                }
 
-        except Exception as e:
-            return {"error": str(e)}
-    
-        finally:
-            # 임시 파일 정리
-            if os.path.exists(video_path):
-                os.remove(video_path)
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
-            if os.path.exists(output_path):
-                os.remove(output_path)
+            except Exception as e:
+                return {"error": str(e)}
+        
+            finally:
+                # 임시 파일 정리
+                if os.path.exists(video_path):
+                    os.remove(video_path)
+                if os.path.exists(audio_path):
+                    os.remove(audio_path)
+                if os.path.exists(output_path):
+                    os.remove(output_path)
 
 def handler(event):
     """Runpod serverless handler"""
