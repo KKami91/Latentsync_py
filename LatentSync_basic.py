@@ -5,10 +5,12 @@ from typing import Sequence, Mapping, Any, Union
 import torch
 import runpod
 import base64
-import torch
 from typing import Sequence, Mapping, Any, Union
 from io import BytesIO
 
+
+#로컬 전용
+import tempfile
 
 def get_value_at_index(obj: Union[Sequence, Mapping], index: int) -> Any:
     """Returns the value at the given index of a sequence or mapping.
@@ -132,84 +134,104 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
     # 파일명에서 확장자 제거
     video_name_without_ext = os.path.splitext(video_name)[0]    
 
-    # 임시 파일로 저장
-    video_path = "/tmp/input_video.mp4"
-    audio_path = "/tmp/input_audio.wav"
+    #로컬 전용 테스트
+    # with tempfile.TemporaryDirectory() as temp_dir:
+    #     # 임시 파일 경로 생성
+    #     video_path = os.path.join(temp_dir, "input_video.mp4")
+    #     audio_path = os.path.join(temp_dir, "input_audio.wav")
+        
+    #     # 파일 저장
+    #     with open(video_path, "wb") as f:
+    #         f.write(video_data)
+    #     with open(audio_path, "wb") as f:
+    #         f.write(audio_data)
 
-    with open(video_path, "wb") as f:
-        f.write(video_data)
-    with open(audio_path, "wb") as f:
-        f.write(audio_data)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # 임시 파일 경로 생성
+        video_path = os.path.join(temp_dir, "input_video.mp4")
+        audio_path = os.path.join(temp_dir, "input_audio.wav")
+        output_path = os.path.join(temp_dir, f"convert_{video_name}")
+        
+        # 입력 파일 저장
+        with open(video_path, "wb") as f:
+            f.write(video_data)
+        with open(audio_path, "wb") as f:
+            f.write(audio_data)
 
-    try:
-        with torch.inference_mode():
-            loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
-            loadaudio_37 = loadaudio.load(audio=audio_path)
+        try:
+            with torch.inference_mode():
+                loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
+                loadaudio_37 = loadaudio.load(audio=audio_path)
 
-            vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
-            vhs_loadvideo_40 = vhs_loadvideo.load_video(
-                video=video_path,
-                force_rate=25,
-                custom_width=512,
-                custom_height=512,
-                frame_load_cap=0,
-                skip_first_frames=0,
-                select_every_nth=1,
-                format="AnimateDiff",
-                unique_id=12015943199208297010,
-            )
+                vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
+                vhs_loadvideo_40 = vhs_loadvideo.load_video(
+                    video=video_path,
+                    force_rate=25,
+                    custom_width=512,
+                    custom_height=512,
+                    frame_load_cap=0,
+                    skip_first_frames=0,
+                    select_every_nth=1,
+                    format="AnimateDiff",
+                    unique_id=12015943199208297010,
+                )
 
-            d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
-            d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
-            vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+                d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
+                d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
+                vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+                
+                d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
+                    mode="pingpong",
+                    fps=25,
+                    silent_padding_sec=0.5,
+                    images=get_value_at_index(vhs_loadvideo_40, 0),
+                    audio=get_value_at_index(loadaudio_37, 0),
+                )
 
-            output_path = "/tmp/output.mp4"
+                d_latentsyncnode_43 = d_latentsyncnode.inference(
+                    seed=random.randint(1, 2**32 - 1),
+                    images=get_value_at_index(d_videolengthadjuster_53, 0),
+                    audio=get_value_at_index(d_videolengthadjuster_53, 1),
+                )
 
-            d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
-                mode="pingpong",
-                fps=25,
-                silent_padding_sec=0.5,
-                images=get_value_at_index(vhs_loadvideo_40, 0),
-                audio=get_value_at_index(loadaudio_37, 0),
-            )
+                vhs_videocombine_41 = vhs_videocombine.combine_video(
+                    frame_rate=25,
+                    loop_count=0,
+                    filename_prefix=os.path.splitext(output_path)[0],  # 확장자 제외
+                    format="video/h264-mp4",
+                    pix_fmt="yuv420p",
+                    crf=19,
+                    save_metadata=True,
+                    trim_to_audio=False,
+                    pingpong=False,
+                    save_output=True,
+                    images=get_value_at_index(d_latentsyncnode_43, 0),
+                    audio=get_value_at_index(d_latentsyncnode_43, 1),
+                    unique_id=7599875590960303900,
+                )
 
-            d_latentsyncnode_43 = d_latentsyncnode.inference(
-                seed=random.randint(1, 2**32 - 1),
-                images=get_value_at_index(d_videolengthadjuster_53, 0),
-                audio=get_value_at_index(d_videolengthadjuster_53, 1),
-            )
+                # 결과 파일 읽기
+                with open(output_path, "rb") as f:
+                    output_data = f.read()
+                
+                return {
+                    "output": {
+                        "video_data": base64.b64encode(output_data).decode('utf-8'),
+                        "video_name": f"convert_{video_name}"
+                    }
+                }
 
-            vhs_videocombine_41 = vhs_videocombine.combine_video(
-                frame_rate=25,
-                loop_count=0,
-                filename_prefix="convert_{video_name_without_ext}",
-                format="video/h264-mp4",
-                pix_fmt="yuv420p",
-                crf=19,
-                save_metadata=True,
-                trim_to_audio=False,
-                pingpong=False,
-                save_output=True,
-                images=get_value_at_index(d_latentsyncnode_43, 0),
-                audio=get_value_at_index(d_latentsyncnode_43, 1),
-                unique_id=7599875590960303900,
-            )
-
-            # 결과 파일 읽기 및 base64 인코딩
-            with open(output_path, "rb") as f:
-                output_data = f.read()
-            
-            return base64.b64encode(output_data).decode('utf-8')
+        except Exception as e:
+            return {"error": str(e)}
     
-    finally:
-        # 임시 파일 정리
-        if os.path.exists(video_path):
-            os.remove(video_path)
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-        if os.path.exists(output_path):
-            os.remove(output_path)
-
+        finally:
+            # 임시 파일 정리
+            if os.path.exists(video_path):
+                os.remove(video_path)
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+            if os.path.exists(output_path):
+                os.remove(output_path)
 
 def handler(event):
     """Runpod serverless handler"""
@@ -227,19 +249,10 @@ def handler(event):
         setup_environment()
         
         # 처리
-        output_base64 = process_latentsync(video_data, audio_data, video_name)
+        return process_latentsync(video_data, audio_data, video_name)
         
-        return {
-            "output": {
-                "video_data": output_base64,
-                "video_name": f"convert_{os.path.splitext(video_name)[0]}.mp4"  # 결과 파일명도 함께 반환
-            }
-        }
     except Exception as e:
-        return {
-            "error": str(e)
-        }
-
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})
