@@ -390,16 +390,16 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
             return {"error": str(e)}
         
 
-        # finally:
-        #     print('in finally....')
-        #     temp_path = os.path.dirname(result_path)
-        #     comfyui_path = os.path.abspath(os.path.join(temp_path, ".."))
-        #     if os.path.exists(temp_path):
-        #         print('.mp4 제거..?')
-        #         os.remove(glob.glob(os.path.join(temp_path, "*.mp4")))
-        #     if os.path.exists(comfyui_path):
-        #         print('.wav 제거..?')
-        #         os.remove(glob.glob(os.path.join(comfyui_path, "*.wav")))
+        finally:
+            print('in finally....')
+            temp_path = os.path.dirname(result_path)
+            comfyui_path = os.path.abspath(os.path.join(temp_path, ".."))
+            if os.path.exists(temp_path):
+                print('.mp4 제거..?')
+                [os.remove(mp4_file) for mp4_file in glob.glob(os.path.join(temp_path, "*.mp4"))]
+            if os.path.exists(comfyui_path):
+                print('.wav 제거..?')
+                [os.remove(wav_file) for wav_file in glob.glob(os.path.join(comfyui_path, "*.wav"))]
 
             
 
