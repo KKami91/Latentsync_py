@@ -8,7 +8,7 @@ import base64
 from typing import Sequence, Mapping, Any, Union
 from io import BytesIO
 import glob
-
+from runpod.serverless.utils.rp_cleanup import clean
 
 #로컬 전용
 import tempfile
@@ -390,21 +390,24 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
             return {"error": str(e)}
         
 
-        finally:
-            print('in finally....')
-            temp_path = os.path.dirname(result_path)
-            comfyui_path = os.path.abspath(os.path.join(temp_path, ".."))
-            if os.path.exists(temp_path):
-                print('.mp4 제거..?')
-                [os.remove(mp4_file) for mp4_file in glob.glob(os.path.join(temp_path, "*.mp4"))]
-            if os.path.exists(comfyui_path):
-                print('.wav 제거..?')
-                [os.remove(wav_file) for wav_file in glob.glob(os.path.join(comfyui_path, "*.wav"))]
+        # finally:
+        #     print('in finally....')
+        #     temp_path = os.path.dirname(result_path)
+        #     comfyui_path = os.path.abspath(os.path.join(temp_path, ".."))
+        #     if os.path.exists(temp_path):
+        #         print('.mp4 제거..?')
+        #         [os.remove(mp4_file) for mp4_file in glob.glob(os.path.join(temp_path, "*.mp4"))]
+        #     if os.path.exists(comfyui_path):
+        #         print('.wav 제거..?')
+        #         [os.remove(wav_file) for wav_file in glob.glob(os.path.join(comfyui_path, "*.wav"))]
 
             
 
 def handler(event):
     """Runpod serverless handler"""
+    import os
+    import glob
+
     print('handler 시작?')
     try:
         # 입력 데이터 검증
@@ -420,10 +423,43 @@ def handler(event):
         setup_environment()
         
         # 처리
-        return process_latentsync(video_data, audio_data, video_name)
+        result = process_latentsync(video_data, audio_data, video_name)
+        
+        # Cleanup 처리
+        print("Cleaning up temporary files...")
+        temp_dir = os.path.join(os.getcwd(), "temp")
+        output_dir = os.path.join(os.getcwd(), "output")
+        
+        # 임시 파일들 정리
+        cleanup_patterns = [
+            os.path.join(temp_dir, "*.mp4"),
+            os.path.join(temp_dir, "*.wav"),
+            os.path.join(output_dir, "*.mp4"),
+            os.path.join(output_dir, "*.wav"),
+            os.path.join(os.getcwd(), "*.wav"),  # 루트 디렉토리의 wav 파일
+        ]
+        
+        for pattern in cleanup_patterns:
+            try:
+                files = glob.glob(pattern)
+                for file in files:
+                    try:
+                        os.remove(file)
+                        print(f"Removed: {file}")
+                    except Exception as e:
+                        print(f"Error removing {file}: {str(e)}")
+            except Exception as e:
+                print(f"Error processing pattern {pattern}: {str(e)}")
+        
+        print("Cleanup completed")
+        return result
         
     except Exception as e:
+        print(f"Error in handler: {str(e)}")
         return {"error": str(e)}
+    finally:
+        # 추가적인 cleanup이 필요한 경우 여기서 처리
+        print("Handler completed")
 
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})
