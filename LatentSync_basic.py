@@ -7,6 +7,7 @@ import runpod
 import base64
 from typing import Sequence, Mapping, Any, Union
 from io import BytesIO
+import glob
 
 
 #로컬 전용
@@ -128,68 +129,188 @@ def setup_environment():
     import_custom_nodes()
 
 
+# def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
+#     from nodes import NODE_CLASS_MAPPINGS
+
+#     # 파일명에서 확장자 제거
+#     video_name_without_ext = os.path.splitext(video_name)[0]
+#     # output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
+#     # if not os.path.exists(output_dir):
+#     #     os.makedirs(output_dir, exist_ok=True)
+
+#     output_dir = os.path.join(os.getcwd(), "output")
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     #로컬 전용 테스트
+#     # with tempfile.TemporaryDirectory() as temp_dir:
+#     #     # 임시 파일 경로 생성
+#     #     video_path = os.path.join(temp_dir, "input_video.mp4")
+#     #     audio_path = os.path.join(temp_dir, "input_audio.wav")
+        
+#     #     # 파일 저장
+#     #     with open(video_path, "wb") as f:
+#     #         f.write(video_data)
+#     #     with open(audio_path, "wb") as f:
+#     #         f.write(audio_data)
+
+#     with tempfile.TemporaryDirectory() as temp_dir:
+#         # 임시 파일 경로 생성
+#         video_path = os.path.join(temp_dir, "input_video.mp4")
+#         audio_path = os.path.join(temp_dir, "input_audio.wav")
+#         #output_path = os.path.join(output_dir, f"convert_{video_name}")
+        
+#         # # 입력 파일 저장
+#         # with open(video_path, "wb") as f:
+#         #     f.write(video_data)
+#         # with open(audio_path, "wb") as f:
+#         #     f.write(audio_data)
+
+#         with tempfile.TemporaryDirectory() as temp_dir:
+#             video_path = os.path.join(temp_dir, "input_video.mp4")
+#             audio_path = os.path.join(temp_dir, "input_audio.wav")
+            
+#             # 출력 파일명 설정
+#             output_filename = f"convert_{os.path.splitext(video_name)[0]}"
+#             print('초기 output_filename : ',output_filename)
+#             output_path = os.path.join(output_dir, output_filename)
+#             print('초기 output_path : ',output_path)
+            
+#             with open(video_path, "wb") as f:
+#                 f.write(video_data)
+#             with open(audio_path, "wb") as f:
+#                 f.write(audio_data)
+
+#             try:
+#                 with torch.inference_mode():
+#                     loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
+#                     loadaudio_37 = loadaudio.load(audio=audio_path)
+
+#                     vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
+#                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
+#                         video=video_path,
+#                         force_rate=25,
+#                         custom_width=64, #배포 0, 로컬 해상도 조절 필요
+#                         custom_height=64, #배포 0, 로컬 해상도 조절 필요
+#                         frame_load_cap=0,
+#                         skip_first_frames=0,
+#                         select_every_nth=1,
+#                         format="AnimateDiff",
+#                         unique_id=12015943199208297010,
+#                     )
+
+#                     d_videolengthadjuster = NODE_CLASS_MAPPINGS["D_VideoLengthAdjuster"]()
+#                     d_latentsyncnode = NODE_CLASS_MAPPINGS["D_LatentSyncNode"]()
+#                     vhs_videocombine = NODE_CLASS_MAPPINGS["VHS_VideoCombine"]()
+                    
+#                     d_videolengthadjuster_53 = d_videolengthadjuster.adjust(
+#                         mode="pingpong",
+#                         fps=25,
+#                         silent_padding_sec=0.5,
+#                         images=get_value_at_index(vhs_loadvideo_40, 0),
+#                         audio=get_value_at_index(loadaudio_37, 0),
+#                     )
+
+#                     d_latentsyncnode_43 = d_latentsyncnode.inference(
+#                         seed=random.randint(1, 2**32 - 1),
+#                         images=get_value_at_index(d_videolengthadjuster_53, 0),
+#                         audio=get_value_at_index(d_videolengthadjuster_53, 1),
+#                     )
+
+#                     filename_prefix = output_filename
+#                     print("videocombine filename_prefix : ",filename_prefix)
+#                     print("before videocombine output_filename : ", output_filename)
+
+#                     vhs_videocombine_41 = vhs_videocombine.combine_video(
+#                         frame_rate=25,
+#                         loop_count=0,
+#                         #filename_prefix=f"{output_filename}"[:-4],
+#                         filename_prefix=filename_prefix,
+#                         format="video/h264-mp4",
+#                         pix_fmt="yuv420p",
+#                         crf=19,
+#                         save_metadata=True,
+#                         trim_to_audio=False,
+#                         pingpong=False,
+#                         save_output=True, # 임시 디렉토리에는 무조건 저장이 되나?
+#                         images=get_value_at_index(d_latentsyncnode_43, 0),
+#                         audio=get_value_at_index(d_latentsyncnode_43, 1),
+#                         unique_id=7599875590960303900,
+#                     )
+
+#                     output_file = f"{output_filename}" # 
+#                     print(f'output_file : {output_file}')
+#                     actual_output_path = os.path.join(output_dir, output_file)
+#                     print(f'actual_output_path : {actual_output_path}')
+
+#                     if not os.path.exists(actual_output_path):
+#                         print('................ not exist file ....... : ', actual_output_path)
+#                         raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
+
+#                     print('파일 읽기 전')
+#                     # 결과 파일 읽기
+#                     with open(output_path, "rb") as f:
+#                         print('파일 읽기 성공, read 전')
+#                         output_data = f.read()
+                    
+#                     #print('output_data : ', output_data)
+#                     return {
+#                         "output": {
+#                             "video_data": base64.b64encode(output_data).decode('utf-8'),
+#                             "video_name": "output_file"
+#                         }
+#                     }
+
+#             except Exception as e:
+#                 return {"error": str(e)}
+        
+#             finally:
+#                 # 임시 파일 정리
+#                 if os.path.exists(video_path):
+#                     os.remove(video_path)
+#                 if os.path.exists(audio_path):
+#                     os.remove(audio_path)
+#                 if os.path.exists(output_path):
+#                     os.remove(output_path)
+
 def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
     from nodes import NODE_CLASS_MAPPINGS
+    import os
+    import tempfile
+    import logging
 
-    # 파일명에서 확장자 제거
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     video_name_without_ext = os.path.splitext(video_name)[0]
-    # output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
-    # if not os.path.exists(output_dir):
-    #     os.makedirs(output_dir, exist_ok=True)
-
-    output_dir = os.path.join(os.getcwd(), "output")
-    os.makedirs(output_dir, exist_ok=True)
-
-    #로컬 전용 테스트
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    #     # 임시 파일 경로 생성
-    #     video_path = os.path.join(temp_dir, "input_video.mp4")
-    #     audio_path = os.path.join(temp_dir, "input_audio.wav")
-        
-    #     # 파일 저장
-    #     with open(video_path, "wb") as f:
-    #         f.write(video_data)
-    #     with open(audio_path, "wb") as f:
-    #         f.write(audio_data)
-
+    
     with tempfile.TemporaryDirectory() as temp_dir:
-        # 임시 파일 경로 생성
-        video_path = os.path.join(temp_dir, "input_video.mp4")
-        audio_path = os.path.join(temp_dir, "input_audio.wav")
-        #output_path = os.path.join(output_dir, f"convert_{video_name}")
-        
-        # # 입력 파일 저장
-        # with open(video_path, "wb") as f:
-        #     f.write(video_data)
-        # with open(audio_path, "wb") as f:
-        #     f.write(audio_data)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # 입력 파일 설정
             video_path = os.path.join(temp_dir, "input_video.mp4")
             audio_path = os.path.join(temp_dir, "input_audio.wav")
+            output_filename = f"convert_{video_name_without_ext}"
             
-            # 출력 파일명 설정
-            output_filename = f"convert_{os.path.splitext(video_name)[0]}.mp4"
-            print('초기 output_filename : ',output_filename)
-            output_path = os.path.join(output_dir, output_filename)
-            print('초기 output_path : ',output_path)
-            
+            # 입력 파일 저장
             with open(video_path, "wb") as f:
                 f.write(video_data)
             with open(audio_path, "wb") as f:
                 f.write(audio_data)
 
+            logger.info("Starting LatentSync processing...")
+            
             try:
                 with torch.inference_mode():
+                    # LoadAudio
                     loadaudio = NODE_CLASS_MAPPINGS["LoadAudio"]()
                     loadaudio_37 = loadaudio.load(audio=audio_path)
 
+                    # LoadVideo
                     vhs_loadvideo = NODE_CLASS_MAPPINGS["VHS_LoadVideo"]()
                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
                         video=video_path,
                         force_rate=25,
-                        custom_width=0,
-                        custom_height=0,
+                        custom_width=512,
+                        custom_height=960,
                         frame_load_cap=0,
                         skip_first_frames=0,
                         select_every_nth=1,
@@ -215,56 +336,72 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                         audio=get_value_at_index(d_videolengthadjuster_53, 1),
                     )
 
-                    vhs_videocombine_41 = vhs_videocombine.combine_video(
+                    logger.info(f"Processing video combine with filename: {output_filename}")
+                    
+                    result = vhs_videocombine.combine_video(
                         frame_rate=25,
                         loop_count=0,
-                        filename_prefix=f"{output_filename}"[:-4],
+                        filename_prefix=output_filename,
                         format="video/h264-mp4",
                         pix_fmt="yuv420p",
                         crf=19,
                         save_metadata=True,
                         trim_to_audio=False,
                         pingpong=False,
-                        save_output=True,
+                        save_output=False,
                         images=get_value_at_index(d_latentsyncnode_43, 0),
                         audio=get_value_at_index(d_latentsyncnode_43, 1),
                         unique_id=7599875590960303900,
                     )
 
-                    output_file = f"{output_filename}" # 
-                    print(f'output_file : {output_file}')
-                    actual_output_path = os.path.join(output_dir, output_file)
-                    print(f'actual_output_path : {actual_output_path}')
+                    # 결과에서 파일 경로 가져오기
+                    if isinstance(result, dict) and 'result' in result:
+                        saved_files = result['result'][0][1]
+                    else:
+                        saved_files = result[0][1]
 
-                    if not os.path.exists(actual_output_path):
-                        print('................ not exist file ....... : ', actual_output_path)
-                        raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
+                    if not saved_files:
+                        raise Exception("No output files were generated")
 
-                    print('파일 읽기 전')
-                    # 결과 파일 읽기
-                    with open(output_path, "rb") as f:
-                        print('파일 읽기 성공, read 전')
+                    result_path = saved_files[-1]  # 마지막 파일이 최종 결과물
+                    logger.info(f"Result file path: {result_path}")
+
+                    if not os.path.exists(result_path):
+                        raise FileNotFoundError(f"Output file not found at: {result_path}")
+
+                    with open(result_path, "rb") as f:
                         output_data = f.read()
+
+                    logger.info("Successfully processed video")
                     
-                    #print('output_data : ', output_data)
                     return {
                         "output": {
                             "video_data": base64.b64encode(output_data).decode('utf-8'),
-                            "video_name": "output_file"
+                            "video_name": f"{output_filename}.mp4"
                         }
                     }
 
             except Exception as e:
+                logger.error(f"Error during LatentSync processing: {str(e)}")
                 return {"error": str(e)}
+
+        except Exception as e:
+            logger.error(f"Error in file handling: {str(e)}")
+            return {"error": str(e)}
         
-            finally:
-                # 임시 파일 정리
-                if os.path.exists(video_path):
-                    os.remove(video_path)
-                if os.path.exists(audio_path):
-                    os.remove(audio_path)
-                if os.path.exists(output_path):
-                    os.remove(output_path)
+
+        # finally:
+        #     print('in finally....')
+        #     temp_path = os.path.dirname(result_path)
+        #     comfyui_path = os.path.abspath(os.path.join(temp_path, ".."))
+        #     if os.path.exists(temp_path):
+        #         print('.mp4 제거..?')
+        #         os.remove(glob.glob(os.path.join(temp_path, "*.mp4")))
+        #     if os.path.exists(comfyui_path):
+        #         print('.wav 제거..?')
+        #         os.remove(glob.glob(os.path.join(comfyui_path, "*.wav")))
+
+            
 
 def handler(event):
     """Runpod serverless handler"""
