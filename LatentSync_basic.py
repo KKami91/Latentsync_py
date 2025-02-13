@@ -309,8 +309,8 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
                         video=video_path,
                         force_rate=25,
-                        custom_width=512,
-                        custom_height=960,
+                        custom_width=0,
+                        custom_height=0,
                         frame_load_cap=0,
                         skip_first_frames=0,
                         select_every_nth=1,
