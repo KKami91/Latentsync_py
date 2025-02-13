@@ -169,7 +169,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
             audio_path = os.path.join(temp_dir, "input_audio.wav")
             
             # 출력 파일명 설정
-            output_filename = f"convert_{os.path.splitext(video_name)[0]}"
+            output_filename = f"convert_{os.path.splitext(video_name)[0]}.mp4"
             print('초기 output_filename : ',output_filename)
             output_path = os.path.join(output_dir, output_filename)
             print('초기 output_path : ',output_path)
@@ -188,8 +188,8 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
                         video=video_path,
                         force_rate=25,
-                        custom_width=256,
-                        custom_height=256,
+                        custom_width=0,
+                        custom_height=0,
                         frame_load_cap=0,
                         skip_first_frames=0,
                         select_every_nth=1,
@@ -218,7 +218,7 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     vhs_videocombine_41 = vhs_videocombine.combine_video(
                         frame_rate=25,
                         loop_count=0,
-                        filename_prefix=f"{output_filename}.mp4",
+                        filename_prefix=f"{output_filename}"[:-4],
                         format="video/h264-mp4",
                         pix_fmt="yuv420p",
                         crf=19,
@@ -231,16 +231,22 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                         unique_id=7599875590960303900,
                     )
 
-                    output_file = f"{output_filename}"
+                    output_file = f"{output_filename}" # 
+                    print(f'output_file : {output_file}')
                     actual_output_path = os.path.join(output_dir, output_file)
+                    print(f'actual_output_path : {actual_output_path}')
 
                     if not os.path.exists(actual_output_path):
+                        print('................ not exist file ....... : ', actual_output_path)
                         raise FileNotFoundError(f"Output file not found at: {actual_output_path}")                    
 
+                    print('파일 읽기 전')
                     # 결과 파일 읽기
                     with open(output_path, "rb") as f:
+                        print('파일 읽기 성공, read 전')
                         output_data = f.read()
                     
+                    #print('output_data : ', output_data)
                     return {
                         "output": {
                             "video_data": base64.b64encode(output_data).decode('utf-8'),
