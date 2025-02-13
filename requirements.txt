@@ -27,6 +27,7 @@ face-alignment
 decord
 ffmpeg-python
 imageio-ffmpeg
+runpod
 
 #non essential dependencies:
 kornia>=0.7.1
