@@ -425,7 +425,19 @@ def handler(event):
         # 처리
         result = process_latentsync(video_data, audio_data, video_name)
         
-        # Cleanup 처리
+
+        
+
+        
+        print("Cleanup completed")
+        return result
+        
+    except Exception as e:
+        print(f"Error in handler: {str(e)}")
+        return {"error": str(e)}
+    finally:
+        # 추가적인 cleanup이 필요한 경우 여기서 처리
+                # Cleanup 처리
         print("Cleaning up temporary files...")
         temp_dir = os.path.join(os.getcwd(), "temp")
         output_dir = os.path.join(os.getcwd(), "output")
@@ -438,7 +450,6 @@ def handler(event):
             os.path.join(output_dir, "*.wav"),
             os.path.join(os.getcwd(), "*.wav"),  # 루트 디렉토리의 wav 파일
         ]
-        
         for pattern in cleanup_patterns:
             try:
                 files = glob.glob(pattern)
@@ -450,15 +461,6 @@ def handler(event):
                         print(f"Error removing {file}: {str(e)}")
             except Exception as e:
                 print(f"Error processing pattern {pattern}: {str(e)}")
-        
-        print("Cleanup completed")
-        return result
-        
-    except Exception as e:
-        print(f"Error in handler: {str(e)}")
-        return {"error": str(e)}
-    finally:
-        # 추가적인 cleanup이 필요한 경우 여기서 처리
         print("Handler completed")
 
 if __name__ == "__main__":
