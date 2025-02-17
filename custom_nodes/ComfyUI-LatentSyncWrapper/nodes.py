@@ -353,7 +353,7 @@ class LatentSyncNode:
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0
             print(f"Frame count after normalization: {processed_frames.shape[0]}")
-            torch.cuda.empty_cache()
+            
             # Fix dimensions for VideoCombine compatibility
             if len(processed_frames.shape) == 3:  
                 processed_frames = processed_frames.unsqueeze(0)
