@@ -272,7 +272,7 @@ def setup_environment():
 #                 if os.path.exists(output_path):
 #                     os.remove(output_path)
 
-def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
+def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str, custom_width_: int, custom_height_: int):
     from nodes import NODE_CLASS_MAPPINGS
     import os
     import tempfile
@@ -309,8 +309,8 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
                         video=video_path,
                         force_rate=25,
-                        custom_width=0,
-                        custom_height=0,
+                        custom_width=custom_width_,
+                        custom_height=custom_height_,
                         frame_load_cap=0,
                         skip_first_frames=0,
                         select_every_nth=1,
@@ -418,12 +418,14 @@ def handler(event):
         video_data = base64.b64decode(event['input']['video'])
         audio_data = base64.b64decode(event['input']['audio'])
         video_name = event['input']['video_name']
+        custom_width_ = event['input']['custom_width_']
+        custom_height_ = event['input']['custom_height_']
         
         # 환경 설정
         setup_environment()
         
         # 처리
-        result = process_latentsync(video_data, audio_data, video_name)
+        result = process_latentsync(video_data, audio_data, video_name, custom_width_, custom_height_)
         
 
         
