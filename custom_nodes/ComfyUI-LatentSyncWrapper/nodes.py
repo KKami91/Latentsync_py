@@ -178,7 +178,7 @@ def setup_models():
 class LatentSyncNode:
     def __init__(self):
         check_and_install_dependencies()
-        setup_models()  # This will now pre-download all required models
+        setup_models()  # This will now pre-download all required models.
 
     @classmethod
     def INPUT_TYPES(s):
