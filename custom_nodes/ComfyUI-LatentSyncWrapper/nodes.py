@@ -178,7 +178,7 @@ def setup_models():
 class LatentSyncNode:
     def __init__(self):
         check_and_install_dependencies()
-        setup_models()  # This will now pre-download all required models.
+        setup_models()  # This will now pre-download all required models
 
     @classmethod
     def INPUT_TYPES(s):
@@ -206,7 +206,6 @@ class LatentSyncNode:
 
 
 
-        torch.cuda.empty_cache()
         # Create a temporary video file from the input frames
         output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5))
         temp_video_path = os.path.join(output_dir, f"temp_{output_name}.mp4")
@@ -232,7 +231,6 @@ class LatentSyncNode:
         except TypeError:
             # Fallback for newer versions
             import av
-            torch.cuda.empty_cache()
             container = av.open(temp_video_path, mode='w')
             stream = container.add_stream('h264', rate=25)
             stream.width = frames.shape[2]
@@ -244,7 +242,6 @@ class LatentSyncNode:
                 container.mux(packet)
             
             # Flush stream
-            torch.cuda.empty_cache()
             packet = stream.encode(None)
             container.mux(packet)
             container.close()
@@ -258,14 +255,11 @@ class LatentSyncNode:
                                     local_dir=ckpt_dir, local_dir_use_symlinks=False)
             print("Model checkpoints downloaded successfully!")
 
-        torch.cuda.empty_cache()
         inference_script_path = os.path.join(cur_dir, "scripts", "inference.py")
         unet_config_path = normalize_path(os.path.join(cur_dir, "configs", "unet", "second_stage.yaml"))
         scheduler_config_path = normalize_path(os.path.join(cur_dir, "configs"))
         ckpt_path = normalize_path(os.path.join(ckpt_dir, "latentsync_unet.pt"))
         whisper_ckpt_path = normalize_path(os.path.join(ckpt_dir, "whisper", "tiny.pt"))
-
-        torch.cuda.empty_cache()
 
         # resample audio to 16k hz and save to wav
         waveform = audio["waveform"]
@@ -279,7 +273,6 @@ class LatentSyncNode:
             waveform_16k = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)(waveform)
             waveform, sample_rate = waveform_16k, new_sample_rate
 
-        torch.cuda.empty_cache()
         # Package resampled audio
         resampled_audio = {
             "waveform": waveform.unsqueeze(0),  # Add batch dim
@@ -289,8 +282,6 @@ class LatentSyncNode:
         audio_path = normalize_path(os.path.join(output_dir, f"latentsync_{output_name}_audio.wav"))
         torchaudio.save(audio_path, waveform, sample_rate)
 
-        torch.cuda.empty_cache()
-
         print(f"Using video path: {video_path}")
         print(f"Video file exists: {os.path.exists(video_path)}")
         print(f"Video file size: {os.path.getsize(video_path)} bytes")
@@ -299,7 +290,6 @@ class LatentSyncNode:
         assert os.path.exists(audio_path), f"audio_path not exists: {audio_path}"
 
         try:
-            torch.cuda.empty_cache()
             # Add the package root to Python path
             package_root = os.path.dirname(cur_dir)
             if package_root not in sys.path:
@@ -311,8 +301,6 @@ class LatentSyncNode:
 
             # Import the inference module
             inference_module = import_inference_script(inference_script_path)
-
-            torch.cuda.empty_cache()
            
             # Create a Namespace object with the arguments
             args = argparse.Namespace(
@@ -325,8 +313,6 @@ class LatentSyncNode:
                 scheduler_config_path=scheduler_config_path,
                 whisper_ckpt_path=whisper_ckpt_path
             )
-
-            torch.cuda.empty_cache()
            
             # Load the config
             config = OmegaConf.load(unet_config_path)
@@ -337,8 +323,6 @@ class LatentSyncNode:
             # Load the processed video back as frames
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             print(f"Frame count after reading video: {processed_frames.shape[0]}")
-
-            torch.cuda.empty_cache()
             
             # Process frames following wav2lip.py pattern
             out_tensor_list = []
@@ -351,8 +335,6 @@ class LatentSyncNode:
                 
                 # Convert back to tensor
                 frame = torch.from_numpy(frame)
-
-                torch.cuda.empty_cache()
                 
                 # Ensure we have 3 channels
                 if len(frame.shape) == 2:  # If grayscale
@@ -364,9 +346,6 @@ class LatentSyncNode:
                 frame = frame.permute(2, 0, 1)
                 
                 out_tensor_list.append(frame)
-
-                
-            torch.cuda.empty_cache()
 
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0
@@ -381,8 +360,6 @@ class LatentSyncNode:
                 processed_frames = processed_frames.permute(1, 2, 0)  # Convert to HWC
             if processed_frames.shape[-1] == 4:  # If RGBA
                 processed_frames = processed_frames[..., :3]
-
-            torch.cuda.empty_cache()
 
             print(f"Final frame count: {processed_frames.shape[0]}")
 
