@@ -196,15 +196,12 @@ class LatentSyncNode:
 
     def inference(self, images, audio, seed):
         # Existing inference logic
-        #torch.cuda.empty_cache()
         cur_dir = get_ext_dir()
         ckpt_dir = os.path.join(cur_dir, "checkpoints")
         output_dir = folder_paths.get_output_directory()
         temp_dir = os.path.join(output_dir, "temp_frames")
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(temp_dir, exist_ok=True)
-
-
 
         # Create a temporary video file from the input frames
         output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5))
