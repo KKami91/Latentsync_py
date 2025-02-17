@@ -196,7 +196,7 @@ class LatentSyncNode:
 
     def inference(self, images, audio, seed):
         # Existing inference logic
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
         cur_dir = get_ext_dir()
         ckpt_dir = os.path.join(cur_dir, "checkpoints")
         output_dir = folder_paths.get_output_directory()
