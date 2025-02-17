@@ -196,15 +196,12 @@ class LatentSyncNode:
 
     def inference(self, images, audio, seed):
         # Existing inference logic
-        torch.cuda.empty_cache()
         cur_dir = get_ext_dir()
         ckpt_dir = os.path.join(cur_dir, "checkpoints")
         output_dir = folder_paths.get_output_directory()
         temp_dir = os.path.join(output_dir, "temp_frames")
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(temp_dir, exist_ok=True)
-
-
 
         # Create a temporary video file from the input frames
         output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5))
@@ -246,7 +243,6 @@ class LatentSyncNode:
             container.mux(packet)
             container.close()
         video_path = normalize_path(temp_video_path)
-        torch.cuda.empty_cache()
 
         if not os.path.exists(ckpt_dir):
             print("Downloading model checkpoints... This may take a while.")
@@ -279,7 +275,6 @@ class LatentSyncNode:
             "waveform": waveform.unsqueeze(0),  # Add batch dim
             "sample_rate": sample_rate
         }
-        torch.cuda.empty_cache()
 
         audio_path = normalize_path(os.path.join(output_dir, f"latentsync_{output_name}_audio.wav"))
         torchaudio.save(audio_path, waveform, sample_rate)
@@ -292,7 +287,6 @@ class LatentSyncNode:
         assert os.path.exists(audio_path), f"audio_path not exists: {audio_path}"
 
         try:
-            torch.cuda.empty_cache()
             # Add the package root to Python path
             package_root = os.path.dirname(cur_dir)
             if package_root not in sys.path:
@@ -326,7 +320,7 @@ class LatentSyncNode:
             # Load the processed video back as frames
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             print(f"Frame count after reading video: {processed_frames.shape[0]}")
-            torch.cuda.empty_cache()
+            
             # Process frames following wav2lip.py pattern
             out_tensor_list = []
             for frame in processed_frames:
@@ -353,7 +347,7 @@ class LatentSyncNode:
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0
             print(f"Frame count after normalization: {processed_frames.shape[0]}")
-            torch.cuda.empty_cache()
+
             # Fix dimensions for VideoCombine compatibility
             if len(processed_frames.shape) == 3:  
                 processed_frames = processed_frames.unsqueeze(0)

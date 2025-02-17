@@ -272,7 +272,7 @@ def setup_environment():
 #                 if os.path.exists(output_path):
 #                     os.remove(output_path)
 
-def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str, custom_width_: int, custom_height_: int):
+def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str):
     from nodes import NODE_CLASS_MAPPINGS
     import os
     import tempfile
@@ -309,8 +309,8 @@ def process_latentsync(video_data: bytes, audio_data: bytes, video_name: str, cu
                     vhs_loadvideo_40 = vhs_loadvideo.load_video(
                         video=video_path,
                         force_rate=25,
-                        custom_width=custom_width_,
-                        custom_height=custom_height_,
+                        custom_width=512,
+                        custom_height=512,
                         frame_load_cap=0,
                         skip_first_frames=0,
                         select_every_nth=1,
@@ -410,7 +410,7 @@ def handler(event):
 
     print('handler 시작?')
     try:
-        # 입력 데이터 검증
+        # 입력 데이터 검증a
         if 'input' not in event or 'video' not in event['input'] or 'audio' not in event['input']:
             raise ValueError("Missing required input fields (video and/or audio)")
 
@@ -418,14 +418,12 @@ def handler(event):
         video_data = base64.b64decode(event['input']['video'])
         audio_data = base64.b64decode(event['input']['audio'])
         video_name = event['input']['video_name']
-        custom_width_ = event['input']['custom_width_']
-        custom_height_ = event['input']['custom_height_']
         
         # 환경 설정
         setup_environment()
         
         # 처리
-        result = process_latentsync(video_data, audio_data, video_name, custom_width_, custom_height_)
+        result = process_latentsync(video_data, audio_data, video_name)
         
 
         
